@@ -1,0 +1,978 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Jadwal Salat & Imsak — DKI Jakarta & Sekitar</title>
+  <style>
+    :root{
+      --bg:#0b1020; --card:#111a33; --muted:#8aa0c6; --text:#e7eefc; --accent:#6ee7ff;
+      --danger:#ff6b6b; --ok:#6bff95; --line:rgba(255,255,255,.09);
+      --shadow:rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;
+      background:radial-gradient(1200px 600px at 20% 0%, #16224a 0%, var(--bg) 45%), var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:20px}
+    header{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .title{display:flex;gap:12px;align-items:center}
+    .badge{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#2dd4bf,#60a5fa);box-shadow:0 10px 25px rgba(96,165,250,.2)}
+    h1{font-size:18px;margin:0}
+    .sub{color:var(--muted);font-size:13px;margin-top:2px;max-width:720px}
+
+    .grid{display:grid;gap:14px;margin-top:14px}
+    @media (min-width:980px){.grid{grid-template-columns: 1.25fr .75fr}}
+
+    .card{background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--line); border-radius:18px; padding:16px; box-shadow:0 12px 30px var(--shadow)}
+
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:6px}
+    select,input,button{
+      border-radius:12px; border:1px solid var(--line); background:rgba(0,0,0,.15);
+      color:var(--text); padding:10px 12px; outline:none;
+    }
+    select,input{min-width:220px}
+    input[type="date"]{min-width:170px}
+    input[type="number"]{min-width:120px}
+    input::placeholder{color:rgba(231,238,252,.45)}
+    button{cursor:pointer;background:rgba(110,231,255,.12)}
+    button:hover{background:rgba(110,231,255,.18)}
+    button:disabled{opacity:.55;cursor:not-allowed}
+
+    .pill{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+    .pill.ok{color:var(--ok)}
+    .pill.bad{color:var(--danger)}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    .sep{height:1px;background:var(--line);margin:12px 0}
+    code{background:rgba(0,0,0,.25); padding:2px 6px; border-radius:8px; border:1px solid var(--line)}
+
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .tab{padding:8px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(0,0,0,.12);color:var(--muted)}
+    .tab.active{color:var(--text); border-color:rgba(110,231,255,.45); box-shadow:0 0 0 3px rgba(110,231,255,.08) inset}
+
+    .times{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    @media(min-width:520px){.times{grid-template-columns:repeat(3,minmax(0,1fr));}}
+
+    .tbox{border:1px solid var(--line); border-radius:14px; padding:12px; background:rgba(0,0,0,.12)}
+    .tname{font-size:12px;color:var(--muted)}
+    .tval{font-size:22px;margin-top:6px;letter-spacing:.5px}
+    .tbox.next{border-color:rgba(110,231,255,.45); box-shadow:0 0 0 3px rgba(110,231,255,.08) inset}
+
+    .toast{margin-top:10px; padding:10px 12px; border-radius:14px; border:1px solid var(--line);
+      background:rgba(0,0,0,.12)}
+
+    .hide{display:none}
+
+    /* Export frame: background ikut saat PNG/PDF */
+    #exportFrame{
+      border-radius:18px;
+      padding:16px;
+      background:
+        radial-gradient(900px 480px at 18% 0%, rgba(96,165,250,.32) 0%, rgba(11,16,32,0) 58%),
+        radial-gradient(900px 480px at 82% 0%, rgba(45,212,191,.24) 0%, rgba(11,16,32,0) 55%),
+        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.10);
+    }
+    #exportCopyright{margin-top:12px;text-align:center;font-size:12px;color:rgba(231,238,252,.78)}
+
+    /* 1 Bulan — tabel 1 lembar */
+    .calHead{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between}
+    .calTitle{font-size:16px;font-weight:800}
+    .calTools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+    .sheet{border:1px solid var(--line);border-radius:16px;padding:12px;background:rgba(0,0,0,.10)}
+    .sheetTop{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+    .sheetTop .big{font-size:18px;font-weight:900;letter-spacing:.2px}
+    .sheetTop .sub{font-size:12px;color:var(--muted)}
+
+    .tableWrap{overflow:auto;border:1px solid var(--line);border-radius:14px;background:rgba(0,0,0,.12)}
+    table.monthTable{width:100%;border-collapse:collapse;min-width:920px}
+    .monthTable th,.monthTable td{border:1px solid var(--line);padding:8px 8px;font-size:12px;white-space:nowrap}
+    .monthTable thead th{position:sticky;top:0;background:rgba(10,16,32,.92);backdrop-filter: blur(8px);z-index:2}
+    .monthTable th{color:rgba(231,238,252,.95);font-weight:900;text-align:center}
+    .monthTable td{color:rgba(231,238,252,.92)}
+    .monthTable td.center{text-align:center}
+    .monthTable tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+    .monthTable tr.today td{outline:2px solid rgba(107,255,149,.35); outline-offset:-2px}
+
+    @media print{
+      #exportFrame{background:#fff;border-color:#ddd}
+      #exportCopyright{color:#333}
+      .sheet,.tableWrap{background:#fff}
+      .monthTable thead th{background:#f3f4f6;color:#111}
+      .monthTable td{color:#111}
+      .monthTable tr:nth-child(even) td{background:#fafafa}
+      body{background:#fff;color:#000}
+      .wrap{max-width:none}
+      .card{box-shadow:none}
+      .noPrint{display:none !important}
+    }
+
+    /* legacy print hook */
+    @media print{
+
+      body{background:#fff;color:#000}
+      .wrap{max-width:none}
+      .card{box-shadow:none}
+      .noPrint{display:none !important}
+      .day{background:#fff}
+    }
+  </style>
+
+  <!-- Export libraries (CDN). If blocked, use Print -> Save as PDF. -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <div class="badge" aria-hidden="true"></div>
+        <div>
+          <h1>Jadwal Salat & Imsak</h1>
+          <div class="sub">Data diambil dari API publik (myQuran). Fitur: jadwal harian, <b>jadwal 1 bulan (tabel 1 lembar)</b>, <b>download PDF/PNG</b>, dan <b>auto-detect lokasi (GPS)</b>.</div>
+        </div>
+      </div>
+      <div class="row">
+        <span id="apiStatus" class="pill">Memuat API…</span>
+        <span class="pill">Zona waktu: Asia/Jakarta</span>
+      </div>
+    </header>
+
+    <div class="grid">
+      <main class="card">
+        <div class="row noPrint">
+          <div>
+            <label for="citySelect">Wilayah</label>
+            <select id="citySelect" disabled>
+              <option>Memuat daftar wilayah…</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="dateInput">Tanggal (mode harian)</label>
+            <input id="dateInput" type="date" />
+          </div>
+
+          <div style="align-self:end">
+            <button id="refreshBtn">Ambil Jadwal</button>
+          </div>
+        </div>
+
+        <div class="row noPrint" style="margin-top:10px">
+          <div style="flex:1; min-width:240px">
+            <label for="searchInput">Cari wilayah lain (opsional)</label>
+            <input id="searchInput" placeholder="mis. Jakarta Timur, Depok, Kota Bekasi…" />
+            <div class="small muted" style="margin-top:6px">Ketik untuk memfilter dropdown.</div>
+          </div>
+          <div style="align-self:end" class="row">
+            <button id="useNearbyBtn" title="Tampilkan hanya DKI + sekitar">Mode: DKI & Sekitar</button>
+            <button id="geoBtn" title="Minta izin GPS untuk deteksi kota">Deteksi Lokasi (GPS)</button>
+          </div>
+        </div>
+
+        <div class="row noPrint" style="margin-top:10px;justify-content:space-between">
+          <div class="row">
+            <button id="dlPngBtn" title="Download sebagai PNG">Download PNG</button>
+            <button id="dlPdfBtn" title="Download sebagai PDF">Download PDF</button>
+            <button id="printBtn" title="Cetak / Save as PDF via browser">Print</button>
+          </div>
+          <div class="small muted">Tip: export PNG/PDF akan mengambil tampilan tab yang sedang aktif.</div>
+        </div>
+
+        <div class="tabs noPrint">
+          <button class="tab active" id="tabDaily">Harian</button>
+          <button class="tab" id="tabMonth">1 Bulan (Tabel)</button>
+        </div>
+
+        <div class="sep"></div>
+
+        <div id="exportFrame">
+          <div id="exportArea">
+          <section id="dailyView">
+            <div class="row" style="justify-content:space-between">
+              <div>
+                <div class="muted small">Wilayah terpilih</div>
+                <div id="locLabel" style="font-size:16px;font-weight:600;">—</div>
+              </div>
+              <div style="text-align:right">
+                <div class="muted small">Tanggal</div>
+                <div id="dateLabel" style="font-size:16px;font-weight:600;">—</div>
+              </div>
+            </div>
+
+            <div class="toast" id="nextBox">
+              <div class="muted small">Berikutnya</div>
+              <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline">
+                <div id="nextName" style="font-size:18px;font-weight:700">—</div>
+                <div id="countdown" style="font-size:18px;font-weight:700">—</div>
+              </div>
+              <div class="small muted" id="nextAt">—</div>
+            </div>
+
+            <div style="margin-top:12px" class="times" id="timesGrid"></div>
+          </section>
+
+          <section id="monthView" class="hide">
+            <div class="calHead">
+              <div>
+                <div class="muted small">Jadwal 1 bulan</div>
+                <div class="calTitle" id="calTitle">—</div>
+                <div class="small muted" id="calSub">—</div>
+              </div>
+
+              <div class="calTools noPrint">
+                <div>
+                  <label for="monthSelect">Bulan</label>
+                  <select id="monthSelect">
+                    <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4">April</option>
+                    <option value="5">Mei</option><option value="6">Juni</option><option value="7">Juli</option><option value="8">Agustus</option>
+                    <option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="yearInput">Tahun</label>
+                  <input id="yearInput" type="number" min="2000" max="2100" step="1" />
+                </div>
+                <div style="align-self:end">
+                  <button id="loadMonthBtn">Muat Bulan</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="sep"></div>
+
+            <div class="sheet">
+              <div class="sheetTop">
+                <div>
+                  <div class="big" id="sheetTitle">Jadwal Waktu Salat</div>
+                  <div class="sub" id="sheetMeta">—</div>
+                </div>
+                <div class="sub">Format 1 lembar — cocok untuk print & download</div>
+              </div>
+
+              <div class="tableWrap">
+                <table class="monthTable" aria-label="Jadwal 1 bulan">
+                  <thead>
+                    <tr>
+                      <th style="width:48px">No</th>
+                      <th style="width:110px">Hari</th>
+                      <th style="width:120px">Tanggal</th>
+                      <th>Imsak</th>
+                      <th>Subuh</th>
+                      <th>Terbit</th>
+                      <th>Dhuha</th>
+                      <th>Dzuhur</th>
+                      <th>Ashar</th>
+                      <th>Maghrib</th>
+                      <th>Isya</th>
+                    </tr>
+                  </thead>
+                  <tbody id="monthTbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        </div>
+          <div id="exportCopyright">© ArieID</div>
+        </div>
+
+        <div id="err" class="toast hide" style="border-color:rgba(255,107,107,.35)">
+          <div style="font-weight:700;color:var(--danger)">Gagal memuat data</div>
+          <div class="small muted" id="errMsg"></div>
+        </div>
+
+      </main>
+
+      
+    </div>
+
+    <footer class="muted small" style="margin-top:16px;text-align:center">© ArieID</footer>
+  </div>
+
+<script>
+(() => {
+  const TZ = 'Asia/Jakarta';
+  const API_BASES = ['https://api.myquran.com', 'https://api.banghasan.com'];
+
+  const NEARBY_KEYWORDS = ['jakarta','kepulauan seribu','bogor','depok','tangerang','tangerang selatan','bekasi'];
+  const DOW_ID = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+  const MONTH_ID = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+  const el = {
+    apiStatus: document.getElementById('apiStatus'),
+    citySelect: document.getElementById('citySelect'),
+    dateInput: document.getElementById('dateInput'),
+    refreshBtn: document.getElementById('refreshBtn'),
+    searchInput: document.getElementById('searchInput'),
+    useNearbyBtn: document.getElementById('useNearbyBtn'),
+    geoBtn: document.getElementById('geoBtn'),
+    dlPngBtn: document.getElementById('dlPngBtn'),
+    dlPdfBtn: document.getElementById('dlPdfBtn'),
+    printBtn: document.getElementById('printBtn'),
+    tabDaily: document.getElementById('tabDaily'),
+    tabMonth: document.getElementById('tabMonth'),
+    dailyView: document.getElementById('dailyView'),
+    monthView: document.getElementById('monthView'),
+    locLabel: document.getElementById('locLabel'),
+    dateLabel: document.getElementById('dateLabel'),
+    timesGrid: document.getElementById('timesGrid'),
+    err: document.getElementById('err'),
+    errMsg: document.getElementById('errMsg'),
+    nextName: document.getElementById('nextName'),
+    nextAt: document.getElementById('nextAt'),
+    countdown: document.getElementById('countdown'),
+    exportFrame: document.getElementById('exportFrame'),
+    exportArea: document.getElementById('exportArea'),
+    monthTbody: document.getElementById('monthTbody'),
+    sheetTitle: document.getElementById('sheetTitle'),
+    sheetMeta: document.getElementById('sheetMeta'),
+    monthSelect: document.getElementById('monthSelect'),
+    yearInput: document.getElementById('yearInput'),
+    loadMonthBtn: document.getElementById('loadMonthBtn'),
+    calTitle: document.getElementById('calTitle'),
+    calSub: document.getElementById('calSub'),  };
+
+  const pad2 = n => String(n).padStart(2,'0');
+  const monthCache = new Map();
+
+  let allCities = [];
+  let shownCities = [];
+  let nearbyMode = true;
+  let countdownTimer = null;
+
+  function setStatus(ok, text){
+    el.apiStatus.textContent = text;
+    el.apiStatus.classList.toggle('ok', !!ok);
+    el.apiStatus.classList.toggle('bad', ok === false);
+  }
+
+  async function fetchJSON(url){
+    const res = await fetch(url, { cache: 'no-store' });
+    if(!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    return await res.json();
+  }
+
+  function todayISOInJakarta(){
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(now);
+    const y = parts.find(p=>p.type==='year').value;
+    const m = parts.find(p=>p.type==='month').value;
+    const d = parts.find(p=>p.type==='day').value;
+    return `${y}-${m}-${d}`;
+  }
+
+  function getJakartaDateParts(date = new Date()){
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(date);
+    return {
+      y: Number(parts.find(p=>p.type==='year').value),
+      m: Number(parts.find(p=>p.type==='month').value),
+      d: Number(parts.find(p=>p.type==='day').value)
+    };
+  }
+
+  function fmtDateLong(iso){
+    const [y,m,d] = iso.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m-1, d));
+    return new Intl.DateTimeFormat('id-ID', { timeZone: TZ, weekday:'long', year:'numeric', month:'long', day:'numeric' }).format(dt);
+  }
+
+  function isNearby(lokasi){
+    const s = lokasi.toLowerCase();
+    return NEARBY_KEYWORDS.some(k => s.includes(k));
+  }
+
+  function normalizeCityList(payload){
+    const data = payload?.data || payload?.results || payload;
+    if(!Array.isArray(data)) return [];
+    return data.map(x => {
+      const id = x.id || x.idkota || x.kode || x.value;
+      const lokasi = x.lokasi || x.kota || x.nama || x.label;
+      if(!id || !lokasi) return null;
+      return { id: String(id), lokasi: String(lokasi) };
+    }).filter(Boolean).sort((a,b)=>a.lokasi.localeCompare(b.lokasi,'id-ID'));
+  }
+
+  async function tryFetchCities(){
+    const paths = ['/v2/sholat/kota/semua','/v1/sholat/kota/semua'];
+    let lastErr;
+    for(const base of API_BASES){
+      for(const p of paths){
+        try{
+          const data = await fetchJSON(base + p);
+          const list = normalizeCityList(data);
+          if(list.length) return { baseUsed: base, list };
+        }catch(e){ lastErr = e; }
+      }
+    }
+    throw lastErr || new Error('Tidak bisa mengambil daftar kota.');
+  }
+
+  function renderCityOptions(list, selectedId){
+    el.citySelect.innerHTML = '';
+    for(const c of list){
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.lokasi;
+      if(selectedId && c.id === selectedId) opt.selected = true;
+      el.citySelect.appendChild(opt);
+    }
+  }
+
+  function applyFilter(query){
+    const q = (query||'').trim().toLowerCase();
+    let base = nearbyMode ? allCities.filter(c=>isNearby(c.lokasi)) : allCities;
+    if(q) base = base.filter(c=>c.lokasi.toLowerCase().includes(q));
+    shownCities = base.length ? base : (nearbyMode ? allCities.filter(c=>isNearby(c.lokasi)) : allCities);
+    const keep = el.citySelect.value;
+    renderCityOptions(shownCities, shownCities.some(c=>c.id===keep) ? keep : (shownCities[0]?.id));
+  }
+
+  function normalizeSchedule(payload){
+    const data = payload?.data || payload;
+    const j = data?.jadwal || data?.data?.jadwal || payload?.jadwal;
+    if(!j) return null;
+    return {
+      lokasi: String(data?.lokasi || data?.kota || ''),
+      jadwal: {
+        imsak: j.imsak || j.IMSAK,
+        subuh: j.subuh || j.SUBUH,
+        terbit: j.terbit || j.TERBIT,
+        dhuha: j.dhuha || j.DHUHA,
+        dzuhur: j.dzuhur || j.DZUHUR,
+        ashar: j.ashar || j.ASHAR,
+        maghrib: j.maghrib || j.MAGHRIB,
+        isya: j.isya || j.ISYA,
+      }
+    };
+  }
+
+  function parseDateToISO(input){
+    if(!input) return null;
+    const s0 = String(input).trim();
+    const s = s0.split(' ')[0];
+    // ISO: YYYY-MM-DD
+    if(s.length >= 10 && s[4] === '-' && s[7] === '-') return s.slice(0,10);
+
+    // DD/MM/YYYY atau YYYY/MM/DD
+    if(s.includes('/')){
+      const p = s.split('/');
+      if(p.length === 3){
+        if(p[0].length === 4) return p[0] + '-' + pad2(p[1]) + '-' + pad2(p[2]);
+        if(p[2].length === 4) return p[2] + '-' + pad2(p[1]) + '-' + pad2(p[0]);
+      }
+    }
+
+    // DD-MM-YYYY atau DD.MM.YYYY
+    if(s.includes('-') || s.includes('.')){
+      const sep = s.includes('-') ? '-' : '.';
+      const p = s.split(sep);
+      if(p.length === 3 && p[2].length === 4 && p[0].length <= 2){
+        return p[2] + '-' + pad2(p[1]) + '-' + pad2(p[0]);
+      }
+    }
+
+    return null;
+  }
+
+  function normalizeMonthly(payload){
+    const data = payload?.data || payload;
+    const arr =
+      (Array.isArray(data?.jadwal) ? data.jadwal : null) ||
+      (Array.isArray(data?.data?.jadwal) ? data.data.jadwal : null) ||
+      (Array.isArray(data?.jadwal?.data) ? data.jadwal.data : null) ||
+      (Array.isArray(payload?.jadwal) ? payload.jadwal : null);
+
+    if(!Array.isArray(arr) || !arr.length) return null;
+    const map = new Map();
+
+    for(const row of arr){
+      const rawDate = row?.tanggal || row?.date || row?.tgl || row?.datetime || '';
+      const iso = parseDateToISO(rawDate) || parseDateToISO(String(rawDate).slice(0,10));
+      if(!iso) continue;
+      map.set(iso, {
+        imsak: row.imsak || row.IMSAK,
+        subuh: row.subuh || row.SUBUH,
+        terbit: row.terbit || row.TERBIT,
+        dhuha: row.dhuha || row.DHUHA,
+        dzuhur: row.dzuhur || row.DZUHUR,
+        ashar: row.ashar || row.ASHAR,
+        maghrib: row.maghrib || row.MAGHRIB,
+        isya: row.isya || row.ISYA,
+      });
+    }
+    return map;
+  }
+
+  async function tryFetchDaily(cityId, iso){
+    const y = iso.slice(0,4), m = iso.slice(5,7), d = iso.slice(8,10);
+    const paths = [
+      `/v2/sholat/jadwal/${encodeURIComponent(cityId)}/${encodeURIComponent(iso)}`,
+      `/v2/sholat/jadwal/${encodeURIComponent(cityId)}/${y}/${m}/${d}`,
+      `/v1/sholat/jadwal/${encodeURIComponent(cityId)}/${y}/${m}/${d}`
+    ];
+    let lastErr;
+    for(const base of API_BASES){
+      for(const p of paths){
+        try{
+          const data = await fetchJSON(base + p);
+          const j = normalizeSchedule(data);
+          if(j) return j;
+        }catch(e){ lastErr = e; }
+      }
+    }
+    throw lastErr || new Error('Tidak bisa ambil jadwal harian.');
+  }
+
+  async function tryFetchMonthly(cityId, year, month){
+    const key = `${cityId}-${year}-${month}`;
+    if(monthCache.has(key)) return monthCache.get(key);
+
+    const paths = [
+      `/v2/sholat/jadwal/${encodeURIComponent(cityId)}/${year}/${month}`,
+      `/v1/sholat/jadwal/${encodeURIComponent(cityId)}/${year}/${month}`
+    ];
+
+    let lastErr;
+    for(const base of API_BASES){
+      for(const p of paths){
+        try{
+          const data = await fetchJSON(base + p);
+          const map = normalizeMonthly(data);
+          if(map && map.size){
+            monthCache.set(key, map);
+            return map;
+          }
+        }catch(e){ lastErr = e; }
+      }
+    }
+
+    // fallback: fetch per day
+    const days = new Date(year, month, 0).getDate();
+    const map = new Map();
+    for(let d=1; d<=days; d++){
+      const iso = `${year}-${pad2(month)}-${pad2(d)}`;
+      try{
+        const j = await tryFetchDaily(cityId, iso);
+        map.set(iso, j.jadwal);
+      }catch(_){ /* skip */ }
+    }
+    if(map.size){
+      monthCache.set(key, map);
+      return map;
+    }
+
+    throw lastErr || new Error('Tidak bisa ambil jadwal bulanan.');
+  }
+
+  function clearError(){ el.err.classList.add('hide'); el.errMsg.textContent=''; }
+  function showError(msg){ el.err.classList.remove('hide'); el.errMsg.textContent = msg; }
+
+  function renderTimes(jadwal, nextKey){
+    const order = [
+      ['imsak','Imsak'],['subuh','Subuh'],['terbit','Terbit'],['dhuha','Dhuha'],
+      ['dzuhur','Dzuhur'],['ashar','Ashar'],['maghrib','Maghrib'],['isya','Isya']
+    ];
+    el.timesGrid.innerHTML='';
+    for(const [k,label] of order){
+      const box = document.createElement('div');
+      box.className = 'tbox' + (k===nextKey ? ' next' : '');
+      box.innerHTML = `<div class="tname">${label}</div><div class="tval">${jadwal?.[k] || '—'}</div>`;
+      el.timesGrid.appendChild(box);
+    }
+  }
+
+  function parseTimeOnDate(iso, hhmm){
+    if(!hhmm) return null;
+    const parts = String(hhmm).split(':');
+    if(parts.length<2) return null;
+    const hh = Number(parts[0]);
+    const mm = Number(parts[1]);
+    if(Number.isNaN(hh) || Number.isNaN(mm)) return null;
+    return new Date(`${iso}T${pad2(hh)}:${pad2(mm)}:00+07:00`);
+  }
+
+  function computeNextEvent(iso, jadwal){
+    const now = new Date();
+    const order = [['imsak','Imsak'],['subuh','Subuh'],['terbit','Terbit'],['dhuha','Dhuha'],['dzuhur','Dzuhur'],['ashar','Ashar'],['maghrib','Maghrib'],['isya','Isya']];
+    const events = order.map(([k,label]) => ({k,label, at: parseTimeOnDate(iso, jadwal[k])})).filter(e=>e.at && !isNaN(e.at));
+    let next = events.find(e=>e.at.getTime() > now.getTime());
+    if(!next){
+      const t = new Date(`${iso}T00:00:00+07:00`);
+      t.setDate(t.getDate()+1);
+      const iso2 = `${t.getFullYear()}-${pad2(t.getMonth()+1)}-${pad2(t.getDate())}`;
+      next = { k:'subuh', label:'Subuh', at: parseTimeOnDate(iso2, jadwal.subuh), isTomorrow:true };
+    }
+    return next;
+  }
+
+  function startCountdown(iso, jadwal){
+    if(countdownTimer) clearInterval(countdownTimer);
+    const tick = () => {
+      const next = computeNextEvent(iso, jadwal);
+      if(!next?.at){
+        el.nextName.textContent = '—';
+        el.nextAt.textContent = '—';
+        el.countdown.textContent = '—';
+        renderTimes(jadwal, null);
+        return;
+      }
+      const diff = Math.max(0, next.at.getTime() - Date.now());
+      const hrs = Math.floor(diff/3600000);
+      const mins = Math.floor((diff%3600000)/60000);
+      const secs = Math.floor((diff%60000)/1000);
+      el.nextName.textContent = next.label;
+      el.nextAt.textContent = `Jam ${pad2(next.at.getHours())}:${pad2(next.at.getMinutes())} WIB${next.isTomorrow ? ' (besok)' : ''}`;
+      el.countdown.textContent = `${pad2(hrs)}:${pad2(mins)}:${pad2(secs)}`;
+      renderTimes(jadwal, next.k);
+    };
+    tick();
+    countdownTimer = setInterval(tick, 1000);
+  }
+
+  function setTab(tab){
+    const isMonth = tab === 'month';
+    el.tabMonth.classList.toggle('active', isMonth);
+    el.tabDaily.classList.toggle('active', !isMonth);
+    el.monthView.classList.toggle('hide', !isMonth);
+    el.dailyView.classList.toggle('hide', isMonth);
+    localStorage.setItem('pray_tab', isMonth ? 'month' : 'daily');
+  }
+
+  
+
+  function renderMonthTable(cityId, year, month, scheduleMap){
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const lokasi = shownCities.find(c=>c.id===String(cityId))?.lokasi || '—';
+
+    const parts = getJakartaDateParts(new Date());
+    const todayISO = parts.y + '-' + pad2(parts.m) + '-' + pad2(parts.d);
+
+    el.monthTbody.innerHTML = '';
+
+    const hariNama = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+
+    for(let day=1; day<=daysInMonth; day++){
+      const iso = year + '-' + pad2(month) + '-' + pad2(day);
+      const j = scheduleMap.get(iso) || {};
+      const dt = new Date(iso + 'T00:00:00+07:00');
+      const hari = hariNama[dt.getDay()];
+      const tgl = pad2(day) + '/' + pad2(month) + '/' + year;
+
+      const tr = document.createElement('tr');
+      if(iso === todayISO) tr.className = 'today';
+      tr.innerHTML =
+        '<td class="center">' + day + '</td>' +
+        '<td>' + hari + '</td>' +
+        '<td class="center">' + tgl + '</td>' +
+        '<td class="center">' + (j.imsak || '—') + '</td>' +
+        '<td class="center">' + (j.subuh || '—') + '</td>' +
+        '<td class="center">' + (j.terbit || '—') + '</td>' +
+        '<td class="center">' + (j.dhuha || '—') + '</td>' +
+        '<td class="center">' + (j.dzuhur || '—') + '</td>' +
+        '<td class="center">' + (j.ashar || '—') + '</td>' +
+        '<td class="center">' + (j.maghrib || '—') + '</td>' +
+        '<td class="center">' + (j.isya || '—') + '</td>';
+
+      el.monthTbody.appendChild(tr);
+    }
+
+    el.calTitle.textContent = MONTH_ID[month-1] + ' ' + year;
+    el.calSub.textContent = 'Wilayah: ' + lokasi;
+    el.sheetTitle.textContent = 'Jadwal Waktu Salat ' + lokasi;
+    el.sheetMeta.textContent = MONTH_ID[month-1] + ' ' + year + ' • Zona Waktu: WIB (Asia/Jakarta)';
+  }
+
+  async function loadMonthly(){
+    clearError();
+    const cityId = el.citySelect.value;
+    const year = Number(el.yearInput.value);
+    const month = Number(el.monthSelect.value);
+    if(!cityId) return showError('Wilayah belum dipilih.');
+    if(!year || !month) return showError('Tahun/bulan tidak valid.');
+
+    el.loadMonthBtn.disabled = true;
+    setStatus(true, 'Mengambil jadwal bulanan…');
+
+    try{
+      const map = await tryFetchMonthly(cityId, year, month);
+      renderMonthTable(cityId, year, month, map);
+      setStatus(true, 'API OK');
+      localStorage.setItem('pray_month', String(month));
+      localStorage.setItem('pray_year', String(year));
+    }catch(e){
+      setStatus(false, 'Gagal ambil bulanan');
+      showError(String(e?.message || e));
+    }finally{
+      el.loadMonthBtn.disabled = false;
+    }
+  }
+
+  async function refreshDaily(){
+    clearError();
+    const cityId = el.citySelect.value;
+    const iso = el.dateInput.value || todayISOInJakarta();
+    if(!cityId) return showError('Wilayah belum dipilih.');
+
+    el.refreshBtn.disabled = true;
+    setStatus(true, 'Mengambil jadwal harian…');
+
+    try{
+      const data = await tryFetchDaily(cityId, iso);
+      const lokasi = shownCities.find(c=>c.id===cityId)?.lokasi || data.lokasi || '—';
+      el.locLabel.textContent = lokasi;
+      el.dateLabel.textContent = fmtDateLong(iso);
+      startCountdown(iso, data.jadwal);
+      setStatus(true, 'API OK');
+      localStorage.setItem('pray_cityId', cityId);
+      localStorage.setItem('pray_dateISO', iso);
+    }catch(e){
+      setStatus(false, 'Gagal ambil harian');
+      showError(String(e?.message || e));
+    }finally{
+      el.refreshBtn.disabled = false;
+    }
+  }
+
+  // Export
+  const activeTitle = () => {
+    const city = shownCities.find(c=>c.id===el.citySelect.value)?.lokasi || 'Wilayah';
+    const safeCity = city.split(' ').join('_');
+    if(el.tabMonth.classList.contains('active')){
+      const m = Number(el.monthSelect.value);
+      const y = String(el.yearInput.value);
+      return `Jadwal-${safeCity}-${MONTH_ID[m-1]}-${y}`.split(' ').join('_');
+    }
+    const iso = el.dateInput.value || todayISOInJakarta();
+    return `Jadwal-${safeCity}-${iso}`.split(' ').join('_');
+  };
+
+  async function captureElement(){
+    await new Promise(r=>setTimeout(r, 40));
+    if(!window.html2canvas) throw new Error('html2canvas belum termuat (CDN terblok?).');
+    return await window.html2canvas(el.exportFrame, { scale: 2, backgroundColor: '#0b1020' });
+  }
+
+  function downloadBlob(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function downloadPNG(){
+    clearError();
+    try{
+      setStatus(true, 'Membuat PNG…');
+      const canvas = await captureElement();
+      canvas.toBlob((blob)=>{
+        if(!blob) return;
+        downloadBlob(blob, `${activeTitle()}.png`);
+        setStatus(true, 'API OK');
+      }, 'image/png');
+    }catch(e){
+      setStatus(false, 'Export gagal');
+      showError(String(e?.message || e));
+    }
+  }
+
+  async function downloadPDF(){
+    clearError();
+    try{
+      setStatus(true, 'Membuat PDF…');
+      const canvas = await captureElement();
+      const imgData = canvas.toDataURL('image/png');
+
+      const jsPDF = window.jspdf?.jsPDF;
+      if(!jsPDF) throw new Error('jsPDF belum termuat (CDN terblok?).');
+
+      const isMonth = el.tabMonth.classList.contains('active');
+      const pdf = new jsPDF(isMonth ? 'l' : 'p', 'pt', 'a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
+      const w = canvas.width * ratio;
+      const h = canvas.height * ratio;
+      const x = (pageW - w) / 2;
+      const y = 24;
+
+      pdf.addImage(imgData, 'PNG', x, y, w, h, undefined, 'FAST');
+      pdf.save(`${activeTitle()}.pdf`);
+      setStatus(true, 'API OK');
+    }catch(e){
+      setStatus(false, 'Export gagal');
+      showError(String(e?.message || e));
+    }
+  }
+
+  // GPS -> reverse geocode -> pick best city name match
+  const normalizeText = s => (s||'').toLowerCase().replaceAll('.', ' ').replaceAll(',', ' ').split(' ').filter(Boolean);
+
+  function scoreMatch(city, query){
+    const a = new Set(normalizeText(city));
+    const b = normalizeText(query);
+    let hit = 0;
+    for(const t of b) if(a.has(t)) hit++;
+    if(!b.length) return 0;
+    return hit / b.length;
+  }
+
+  function pickBestCityFromName(name){
+    let best = null; let bestScore = 0;
+    const list = (shownCities.length ? shownCities : allCities);
+    for(const c of list){
+      const sc = scoreMatch(c.lokasi, name);
+      if(sc > bestScore){ bestScore = sc; best = c; }
+    }
+    if(bestScore < 0.4){
+      for(const c of allCities){
+        const sc = scoreMatch(c.lokasi, name);
+        if(sc > bestScore){ bestScore = sc; best = c; }
+      }
+    }
+    return (bestScore >= 0.4) ? best : null;
+  }
+
+  async function reverseGeocode(lat, lon){
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
+    const data = await fetchJSON(url);
+    const a = data?.address || {};
+    return a.city || a.town || a.municipality || a.county || a.state_district || a.state || data?.name || data?.display_name || '';
+  }
+
+  async function detectLocation(){
+    clearError();
+    if(!navigator.geolocation) return showError('Browser tidak mendukung GPS/geolocation.');
+
+    el.geoBtn.disabled = true;
+    setStatus(true, 'Meminta izin GPS…');
+
+    navigator.geolocation.getCurrentPosition(async (pos)=>{
+      try{
+        const { latitude, longitude } = pos.coords;
+        setStatus(true, 'Mencari kota terdekat…');
+        const place = await reverseGeocode(latitude, longitude);
+        const best = pickBestCityFromName(place);
+        if(!best){
+          setStatus(false, 'Kota tidak ketemu');
+          return showError(`Lokasi terdeteksi: "${place}". Tapi tidak menemukan kecocokan kota. Coba ketik manual di kolom cari.`);
+        }
+
+        // kalau tidak ada di list yang sedang ditampilkan, otomatis pindah ke mode semua kota
+        if(nearbyMode && !shownCities.some(c=>c.id===best.id)){
+          nearbyMode = false;
+          el.useNearbyBtn.textContent = 'Mode: Semua Kota';
+          applyFilter(el.searchInput.value);
+        }
+
+        el.citySelect.value = best.id;
+        localStorage.setItem('pray_cityId', best.id);
+
+        if(el.tabMonth.classList.contains('active')) await loadMonthly();
+        else await refreshDaily();
+
+        setStatus(true, `Terpilih: ${best.lokasi}`);
+      }catch(e){
+        setStatus(false, 'GPS gagal');
+        showError(String(e?.message || e));
+      }finally{
+        el.geoBtn.disabled = false;
+      }
+    }, (err)=>{
+      el.geoBtn.disabled = false;
+      setStatus(false, 'GPS ditolak');
+      showError(err?.message || 'Izin GPS ditolak atau gagal.');
+    }, { enableHighAccuracy:false, timeout: 12000, maximumAge: 60000 });
+  }
+
+  async function init(){
+    clearError();
+    el.refreshBtn.disabled = true;
+    el.citySelect.disabled = true;
+    setStatus(null, 'Memuat wilayah…');
+
+    try{
+      const { list } = await tryFetchCities();
+      allCities = list;
+      setStatus(true, 'API OK');
+
+      nearbyMode = localStorage.getItem('pray_nearbyMode') !== '0';
+      el.useNearbyBtn.textContent = nearbyMode ? 'Mode: DKI & Sekitar' : 'Mode: Semua Kota';
+
+      shownCities = nearbyMode ? allCities.filter(c=>isNearby(c.lokasi)) : allCities;
+      if(!shownCities.length) shownCities = allCities;
+
+      const savedId = localStorage.getItem('pray_cityId');
+      const selectedId = (savedId && shownCities.some(c=>c.id===savedId)) ? savedId : (shownCities.find(c=>c.lokasi.toLowerCase().includes('jakarta'))?.id || shownCities[0]?.id);
+      renderCityOptions(shownCities, selectedId);
+
+      el.searchInput.value = localStorage.getItem('pray_search') || '';
+      if(el.searchInput.value) applyFilter(el.searchInput.value);
+
+      el.dateInput.value = localStorage.getItem('pray_dateISO') || todayISOInJakarta();
+
+      const { y, m } = getJakartaDateParts(new Date());
+      el.yearInput.value = Number(localStorage.getItem('pray_year')) || y;
+      el.monthSelect.value = Number(localStorage.getItem('pray_month')) || m;
+
+      el.citySelect.disabled = false;
+      el.refreshBtn.disabled = false;
+
+      const tab = localStorage.getItem('pray_tab') || 'daily';
+      setTab(tab === 'month' ? 'month' : 'daily');
+
+      if(tab === 'month') await loadMonthly();
+      else await refreshDaily();
+
+    }catch(e){
+      setStatus(false, 'API error');
+      showError(String(e?.message || e));
+      el.refreshBtn.disabled = false;
+      el.citySelect.disabled = false;
+    }
+  }
+
+  // Events
+  el.refreshBtn.addEventListener('click', refreshDaily);
+  el.citySelect.addEventListener('change', async ()=>{
+    localStorage.setItem('pray_cityId', el.citySelect.value);
+    if(el.tabMonth.classList.contains('active')) await loadMonthly();
+    else await refreshDaily();
+  });
+  el.dateInput.addEventListener('change', ()=>{ localStorage.setItem('pray_dateISO', el.dateInput.value); refreshDaily(); });
+  el.searchInput.addEventListener('input', (e)=>{ applyFilter(e.target.value); localStorage.setItem('pray_search', e.target.value); });
+
+  el.useNearbyBtn.addEventListener('click', ()=>{
+    nearbyMode = !nearbyMode;
+    localStorage.setItem('pray_nearbyMode', nearbyMode ? '1' : '0');
+    el.useNearbyBtn.textContent = nearbyMode ? 'Mode: DKI & Sekitar' : 'Mode: Semua Kota';
+    applyFilter(el.searchInput.value);
+  });
+
+  el.geoBtn.addEventListener('click', detectLocation);
+
+  el.tabDaily.addEventListener('click', ()=> setTab('daily'));
+  el.tabMonth.addEventListener('click', async ()=>{ setTab('month'); await loadMonthly(); });
+
+  el.loadMonthBtn.addEventListener('click', loadMonthly);
+  el.monthSelect.addEventListener('change', ()=>localStorage.setItem('pray_month', el.monthSelect.value));
+  el.yearInput.addEventListener('change', ()=>localStorage.setItem('pray_year', el.yearInput.value));
+
+  el.dlPngBtn.addEventListener('click', downloadPNG);
+  el.dlPdfBtn.addEventListener('click', downloadPDF);
+  el.printBtn.addEventListener('click', ()=>window.print());
+
+  init();
+})();
+</script>
+</body>
+</html>
