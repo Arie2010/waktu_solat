@@ -228,6 +228,13 @@
 
               <div class="calTools noPrint">
                 <div>
+                  <label for="monthModeSelect">Mode Tanggal</label>
+                  <select id="monthModeSelect">
+                    <option value="gregorian">Bulan Masehi</option>
+                    <option value="ramadan">1 Bulan Ramadan</option>
+                  </select>
+                </div>
+                <div id="gregorianMonthWrap">
                   <label for="monthSelect">Bulan</label>
                   <select id="monthSelect">
                     <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option><option value="4">April</option>
@@ -235,9 +242,13 @@
                     <option value="9">September</option><option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
                   </select>
                 </div>
-                <div>
+                <div id="gregorianYearWrap">
                   <label for="yearInput">Tahun</label>
                   <input id="yearInput" type="number" min="2000" max="2100" step="1" />
+                </div>
+                <div id="ramadanYearWrap" class="hide">
+                  <label for="hijriYearInput">Tahun Hijriah</label>
+                  <input id="hijriYearInput" type="number" min="1300" max="1700" step="1" />
                 </div>
                 <div style="align-self:end">
                   <button id="loadMonthBtn">Muat Bulan</button>
@@ -336,10 +347,28 @@
     yearInput: document.getElementById('yearInput'),
     loadMonthBtn: document.getElementById('loadMonthBtn'),
     calTitle: document.getElementById('calTitle'),
-    calSub: document.getElementById('calSub'),  };
+    calSub: document.getElementById('calSub'),
+    monthModeSelect: document.getElementById('monthModeSelect'),
+    gregorianMonthWrap: document.getElementById('gregorianMonthWrap'),
+    gregorianYearWrap: document.getElementById('gregorianYearWrap'),
+    ramadanYearWrap: document.getElementById('ramadanYearWrap'),
+    hijriYearInput: document.getElementById('hijriYearInput'),
+  };
 
   const pad2 = n => String(n).padStart(2,'0');
   const monthCache = new Map();
+  const ramadanDateCache = new Map();
+  const hijriPartsFormatter = (() => {
+    try{
+      return new Intl.DateTimeFormat('en-GB-u-ca-islamic-umalqura', {
+        timeZone: TZ, year:'numeric', month:'numeric', day:'numeric'
+      });
+    }catch(_){
+      return new Intl.DateTimeFormat('en-GB-u-ca-islamic', {
+        timeZone: TZ, year:'numeric', month:'numeric', day:'numeric'
+      });
+    }
+  })();
 
   let allCities = [];
   let shownCities = [];
@@ -374,6 +403,24 @@
       m: Number(parts.find(p=>p.type==='month').value),
       d: Number(parts.find(p=>p.type==='day').value)
     };
+  }
+
+  function getHijriDateParts(date = new Date()){
+    const parts = hijriPartsFormatter.formatToParts(date);
+    return {
+      y: Number(parts.find(p=>p.type==='year')?.value),
+      m: Number(parts.find(p=>p.type==='month')?.value),
+      d: Number(parts.find(p=>p.type==='day')?.value)
+    };
+  }
+
+  function getCurrentHijriYear(){
+    return getHijriDateParts(new Date()).y;
+  }
+
+  function formatISOToDMY(iso){
+    const [y,m,d] = iso.split('-').map(Number);
+    return `${pad2(d)}/${pad2(m)}/${y}`;
   }
 
   function fmtDateLong(iso){
@@ -570,6 +617,75 @@
     throw lastErr || new Error('Tidak bisa ambil jadwal bulanan.');
   }
 
+  async function tryFetchByDateList(cityId, isoDates){
+    const monthList = new Map();
+    for(const iso of isoDates){
+      const year = Number(iso.slice(0,4));
+      const month = Number(iso.slice(5,7));
+      const key = `${year}-${month}`;
+      if(!monthList.has(key)) monthList.set(key, { year, month });
+    }
+
+    const monthMaps = new Map();
+    let lastErr = null;
+
+    for(const [key, ym] of monthList){
+      try{
+        monthMaps.set(key, await tryFetchMonthly(cityId, ym.year, ym.month));
+      }catch(e){
+        lastErr = e;
+        monthMaps.set(key, new Map());
+      }
+    }
+
+    const out = new Map();
+    for(const iso of isoDates){
+      const key = `${Number(iso.slice(0,4))}-${Number(iso.slice(5,7))}`;
+      const map = monthMaps.get(key);
+      const j = map?.get(iso);
+      if(j) out.set(iso, j);
+    }
+
+    for(const iso of isoDates){
+      if(out.has(iso)) continue;
+      try{
+        const j = await tryFetchDaily(cityId, iso);
+        if(j?.jadwal) out.set(iso, j.jadwal);
+      }catch(_){ /* skip */ }
+    }
+
+    if(!out.size) throw lastErr || new Error('Tidak bisa ambil jadwal untuk rentang tanggal ini.');
+    return out;
+  }
+
+  function getRamadanDateList(hijriYear){
+    if(ramadanDateCache.has(hijriYear)) return ramadanDateCache.get(hijriYear);
+
+    const approxGregorianYear = hijriYear + 579;
+    const start = new Date(Date.UTC(approxGregorianYear - 1, 0, 1));
+    const end = new Date(Date.UTC(approxGregorianYear + 1, 11, 31));
+    const out = [];
+
+    for(const d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)){
+      const hijri = getHijriDateParts(d);
+      if(hijri.y !== hijriYear || hijri.m !== 9) continue;
+      const g = getJakartaDateParts(d);
+      const iso = `${g.y}-${pad2(g.m)}-${pad2(g.d)}`;
+      if(out[out.length - 1] !== iso) out.push(iso);
+    }
+
+    ramadanDateCache.set(hijriYear, out);
+    return out;
+  }
+
+  function updateMonthControls(){
+    const isRamadan = el.monthModeSelect.value === 'ramadan';
+    el.gregorianMonthWrap.classList.toggle('hide', isRamadan);
+    el.gregorianYearWrap.classList.toggle('hide', isRamadan);
+    el.ramadanYearWrap.classList.toggle('hide', !isRamadan);
+    el.loadMonthBtn.textContent = isRamadan ? 'Muat Ramadan' : 'Muat Bulan';
+  }
+
   function clearError(){ el.err.classList.add('hide'); el.errMsg.textContent=''; }
   function showError(msg){ el.err.classList.remove('hide'); el.errMsg.textContent = msg; }
 
@@ -688,23 +804,79 @@
     el.sheetMeta.textContent = MONTH_ID[month-1] + ' ' + year + ' • Zona Waktu: WIB (Asia/Jakarta)';
   }
 
+  function renderRamadanTable(cityId, hijriYear, isoDates, scheduleMap){
+    const lokasi = shownCities.find(c=>c.id===String(cityId))?.lokasi || '—';
+    const parts = getJakartaDateParts(new Date());
+    const todayISO = parts.y + '-' + pad2(parts.m) + '-' + pad2(parts.d);
+    const hariNama = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+
+    el.monthTbody.innerHTML = '';
+
+    for(let i=0; i<isoDates.length; i++){
+      const iso = isoDates[i];
+      const j = scheduleMap.get(iso) || {};
+      const dt = new Date(iso + 'T00:00:00+07:00');
+      const hari = hariNama[dt.getDay()];
+      const tgl = formatISOToDMY(iso);
+
+      const tr = document.createElement('tr');
+      if(iso === todayISO) tr.className = 'today';
+      tr.innerHTML =
+        '<td class="center">' + (i + 1) + '</td>' +
+        '<td>' + hari + '</td>' +
+        '<td class="center">' + tgl + '</td>' +
+        '<td class="center">' + (j.imsak || '—') + '</td>' +
+        '<td class="center">' + (j.subuh || '—') + '</td>' +
+        '<td class="center">' + (j.terbit || '—') + '</td>' +
+        '<td class="center">' + (j.dhuha || '—') + '</td>' +
+        '<td class="center">' + (j.dzuhur || '—') + '</td>' +
+        '<td class="center">' + (j.ashar || '—') + '</td>' +
+        '<td class="center">' + (j.maghrib || '—') + '</td>' +
+        '<td class="center">' + (j.isya || '—') + '</td>';
+
+      el.monthTbody.appendChild(tr);
+    }
+
+    const firstISO = isoDates[0] || '';
+    const lastISO = isoDates[isoDates.length - 1] || '';
+    const rangeText = (firstISO && lastISO) ? (formatISOToDMY(firstISO) + ' - ' + formatISOToDMY(lastISO)) : '-';
+
+    el.calTitle.textContent = 'Ramadan ' + hijriYear + ' H';
+    el.calSub.textContent = 'Wilayah: ' + lokasi + ' | Rentang Masehi: ' + rangeText;
+    el.sheetTitle.textContent = 'Jadwal Waktu Salat Ramadan ' + hijriYear + ' H - ' + lokasi;
+    el.sheetMeta.textContent = 'Rentang Masehi: ' + rangeText + ' | Zona Waktu: WIB (Asia/Jakarta)';
+  }
+
   async function loadMonthly(){
     clearError();
     const cityId = el.citySelect.value;
+    const mode = el.monthModeSelect.value;
     const year = Number(el.yearInput.value);
     const month = Number(el.monthSelect.value);
+    const hijriYear = Number(el.hijriYearInput.value);
     if(!cityId) return showError('Wilayah belum dipilih.');
-    if(!year || !month) return showError('Tahun/bulan tidak valid.');
 
     el.loadMonthBtn.disabled = true;
-    setStatus(true, 'Mengambil jadwal bulanan…');
+    setStatus(true, mode === 'ramadan' ? 'Mengambil jadwal 1 bulan Ramadan…' : 'Mengambil jadwal bulanan…');
 
     try{
-      const map = await tryFetchMonthly(cityId, year, month);
-      renderMonthTable(cityId, year, month, map);
+      if(mode === 'ramadan'){
+        if(!hijriYear) throw new Error('Tahun Hijriah tidak valid.');
+        const ramadanDates = getRamadanDateList(hijriYear);
+        if(!ramadanDates.length) throw new Error('Tanggal 1 bulan Ramadan tidak ditemukan untuk tahun Hijriah ini.');
+        const map = await tryFetchByDateList(cityId, ramadanDates);
+        renderRamadanTable(cityId, hijriYear, ramadanDates, map);
+        localStorage.setItem('pray_hijriYear', String(hijriYear));
+      }else{
+        if(!year || !month) throw new Error('Tahun/bulan tidak valid.');
+        const map = await tryFetchMonthly(cityId, year, month);
+        renderMonthTable(cityId, year, month, map);
+        localStorage.setItem('pray_month', String(month));
+        localStorage.setItem('pray_year', String(year));
+      }
+
       setStatus(true, 'API OK');
-      localStorage.setItem('pray_month', String(month));
-      localStorage.setItem('pray_year', String(year));
+      localStorage.setItem('pray_monthMode', mode);
     }catch(e){
       setStatus(false, 'Gagal ambil bulanan');
       showError(String(e?.message || e));
@@ -744,6 +916,10 @@
     const city = shownCities.find(c=>c.id===el.citySelect.value)?.lokasi || 'Wilayah';
     const safeCity = city.split(' ').join('_');
     if(el.tabMonth.classList.contains('active')){
+      if(el.monthModeSelect.value === 'ramadan'){
+        const hYear = Number(el.hijriYearInput.value) || getCurrentHijriYear();
+        return `Jadwal-${safeCity}-Ramadan-${hYear}H`.split(' ').join('_');
+      }
       const m = Number(el.monthSelect.value);
       const y = String(el.yearInput.value);
       return `Jadwal-${safeCity}-${MONTH_ID[m-1]}-${y}`.split(' ').join('_');
@@ -919,10 +1095,13 @@
       if(el.searchInput.value) applyFilter(el.searchInput.value);
 
       el.dateInput.value = localStorage.getItem('pray_dateISO') || todayISOInJakarta();
+      el.monthModeSelect.value = localStorage.getItem('pray_monthMode') || 'gregorian';
+      el.hijriYearInput.value = Number(localStorage.getItem('pray_hijriYear')) || getCurrentHijriYear();
 
       const { y, m } = getJakartaDateParts(new Date());
       el.yearInput.value = Number(localStorage.getItem('pray_year')) || y;
       el.monthSelect.value = Number(localStorage.getItem('pray_month')) || m;
+      updateMonthControls();
 
       el.citySelect.disabled = false;
       el.refreshBtn.disabled = false;
@@ -964,8 +1143,14 @@
   el.tabMonth.addEventListener('click', async ()=>{ setTab('month'); await loadMonthly(); });
 
   el.loadMonthBtn.addEventListener('click', loadMonthly);
+  el.monthModeSelect.addEventListener('change', async ()=>{
+    localStorage.setItem('pray_monthMode', el.monthModeSelect.value);
+    updateMonthControls();
+    if(el.tabMonth.classList.contains('active')) await loadMonthly();
+  });
   el.monthSelect.addEventListener('change', ()=>localStorage.setItem('pray_month', el.monthSelect.value));
   el.yearInput.addEventListener('change', ()=>localStorage.setItem('pray_year', el.yearInput.value));
+  el.hijriYearInput.addEventListener('change', ()=>localStorage.setItem('pray_hijriYear', el.hijriYearInput.value));
 
   el.dlPngBtn.addEventListener('click', downloadPNG);
   el.dlPdfBtn.addEventListener('click', downloadPDF);
